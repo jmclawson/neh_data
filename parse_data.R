@@ -168,8 +168,12 @@ plot_overview <- function(
     title)
 {
   df |> 
+    ungroup() |> 
+    mutate(
+      state_median = median({{column}}),
+      .by = state) |> 
     ggplot(aes(year, {{column}})) +
-    geom_text(aes(color = state, label = state),
+    geom_text(aes(color = state_median, label = state),
               show.legend = FALSE) +
     scale_y_continuous(
       labels = scales::label_dollar(),
@@ -181,7 +185,7 @@ plot_overview <- function(
       y = NULL,
       x = NULL) +
     theme(plot.title.position = "plot") +
-    coord_cartesian(clip = "off")
+    coord_cartesian(clip = "off") 
 }
 
 # all_decades3 |> 
