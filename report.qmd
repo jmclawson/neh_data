@@ -1,0 +1,184 @@
+---
+title: "NEH Awards: Distribution and Diversity"
+author: "James M. Clawson"
+format: 
+  html:
+    table-of-contents: true
+execute: 
+  echo: false
+  message: false
+  warning: false
+editor: visual
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+```
+
+Recipients of NEH represent an impressive variety.
+
+## Distribution over time
+
+Who's getting the money (more emphasizing time)
+
+::: panel-tabset
+## Nominal spending per state
+
+```{r}
+source("parse_data.R")
+all_decades3 |> 
+  plot_overview(award_total, "Nominal spending per state") +
+  geom_smooth(se = FALSE)
+```
+
+Reported numbers suggest an exclusive club, typically reserving annual funding amounts over \$10 million to states like New York, California, and Massachusetts. The other states tangle at the bottom with around \$2.5 million per state staying relatively stable after 1980.
+
+## Real spending per state
+
+```{r}
+all_decades3 |> 
+  plot_overview(award_adjusted, "Real spending per state (2022 dollars)") +
+  geom_smooth(se = FALSE)
+
+```
+
+Adjusting for inflation shows a different picture, with funding rising to a sharp peak in the late 1970s and with New York securing over \$100 million in funding for each of four out of five years. Nationally, the trend line shows a continual decline since that point, except for a blip of renewed funding around 1990.
+
+## Per capita
+
+```{r}
+all_decades3 |> 
+  plot_overview(per_capita_adjusted, "Real spending per capita (2022 dollars)") +
+  geom_smooth(se = FALSE)
+```
+
+Adjusting annually for the estimated population of each state or district adds context. The District of Columbia dominates per capita funding, with amounts commonly double that of the next-highest state.
+
+## Without DC
+
+```{r}
+all_decades3 |> 
+  filter(state != "DC") |> 
+  plot_overview(per_capita_adjusted, "Real spending per capita (without DC)") +
+  geom_smooth(se = FALSE)
+```
+
+Omitting DC rescales the chart to reveal other states with higher amounts of per capita funding. These states tend to have smaller populations, including Alaska, Wyoming, Delaware, and Vermont.
+:::
+
+## Mapping Moments
+
+Who's getting the money (more emphasizing space)
+
+::: panel-tabset
+## A tough start
+
+```{r}
+source("mapping.R")
+awards_map_final |>
+  map_years(1966:1971)
+```
+The first few years of data show a slow start, an undeniable interest in national coverage, and a few rocky years. In 1966, one year after its founding, the NEH funded ten projects on the east coast, limited to New York, Connecticut, and Washington DC. It funded 609 projects in the next year, with representation stretching across the country to include DC and every state but New Mexico. In 1968, funding dropped dramatically, with just 147 awards, but funding recovered in a few years.
+
+Comparing these maps suggests an early interest in gaining geographic diversity. Per capita funding was comparatively low in southern states---and indeed in most states away from the east and west coasts---but this regional pattern doesn't persist.
+
+## Peak Humanities
+
+```{r}
+awards_map_final |>
+  map_year(1977)
+```
+
+Funding peaked in 1977, when more than two thousand projects were awarded $721.5 million, adjusted for inflation. DC's projects were awarded more than $47 per capita, and Alaska's topped $15.35 per capita (2022 dollars).
+
+## New Low
+```{r}
+awards_map_final |>
+  map_year(2019)
+```
+In 2019, funding fell to its lowest level since the 1960s. Only 424 projects were funded, totaling $60.6 million when adjusted for inflation. Per capita funding averaged just 32¢ in states where projects were funded.
+:::
+
+## Digging In
+
+Which kinds of programs are getting the money
+
+::: panel-tabset
+## First-Timers
+
+```{r}
+all_decades <- readRDS("all_decades.rds")
+all_decades |>
+  arrange(year) |>
+  filter(
+    !str_detect(institution, "Unknown"),
+    !str_detect(institution, "Unaffiliated")) |>
+  group_by(institution) |>
+  mutate(num_awards = row_number(),
+         year = as.integer(year)) |>
+  ungroup() |>
+  summarize(
+    first_timer = sum(num_awards == 1),
+    other_timer = sum(num_awards > 1),
+    first_pc = first_timer / sum(first_timer,
+                                 other_timer),
+    other_pc = 1 - first_pc,
+    .by = year) |>
+  ggplot(aes(year, first_pc)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous() +
+  labs(x = NULL,
+       y = NULL,
+       title = "Proportion of first-time awardees showed spikes in 1987 and 1999") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal()
+```
+
+paragraph
+
+## Divisions
+
+```{r}
+states_by_percap <- all_decades3 |> 
+  group_by(state) |> 
+  summarize(per_cap = median(per_capita_adjusted, na.rm = TRUE)) |> 
+  arrange(desc(per_cap)) |> 
+  pull(state)
+
+all_decades |>
+  filter(state %in% c(state.abb, "DC")) |>
+  # mutate(total = sum(award_total, na.rm = TRUE),
+  #        .by = state) |>
+  # mutate(prop = sum(award_total, na.rm = TRUE)/total,
+  #        .by = c(state, division)) |>
+  group_by(state, division) |>
+  summarize(n = n()) |>
+  mutate(total = sum(n, na.rm = TRUE),
+         prop = n/total) |>
+  ungroup() |> 
+  arrange(desc(prop)) |> 
+  select(state, division, prop) |> 
+  distinct() |> 
+  mutate(prop = scale(prop),
+         .by = division) |> 
+  mutate(
+    state = factor(state, 
+                   levels = states_by_percap) |> 
+      fct_rev(),
+    division = fct_reorder(division, prop)
+  ) |> 
+  ggplot(aes(division, state, fill = prop)) + 
+  geom_tile() +
+  theme(axis.text.x = element_text(
+    angle = 90,
+    hjust = 1)) +
+  scale_fill_viridis_c()
+  
+```
+
+paragraph
+
+:::
