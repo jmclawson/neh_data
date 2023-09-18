@@ -12,7 +12,7 @@ urls <- paste0("https://apps.neh.gov/open/data/NEH_Grants",
 source("https://gist.githubusercontent.com/jmclawson/65899e2de6bfee692b08141a98422240/raw/7c5590377332e427691f2331b69abd58be2141ec/get_if_needed.R")
 
 # Apply the function to every url
-walk(urls, get_if_needed)
+walk(urls, get_if_needed, destdir = "data-raw")
 
 # Create a function to extract the xml file from each zip.
 extract_xml <- function(x, remove = FALSE){
@@ -113,7 +113,8 @@ if(!file.exists("all_decades3.rds")){
     # For some reason, I struggled with the data for 2020-2023. I decided to skip it for now.
     
   # Export data for the first step of the process.
-  saveRDS(all_decades, "all_decades.rds")
+  if(!dir.exists("data")){dir.create("data")}
+  saveRDS(all_decades, "data/all_decades.rds")
   
   # Adjust for inflation to 2022 amounts using the priceR package.
   all_decades2 <- 
@@ -128,7 +129,7 @@ if(!file.exists("all_decades3.rds")){
           to_date = 2022))
   
   # Export data for the next step of the process.
-  saveRDS(all_decades2, "all_decades2.rds")
+  saveRDS(all_decades2, "data/all_decades2.rds")
   
   # Add population estimates and calculate per capita funding
   all_decades3 <- all_decades2 |> 
@@ -146,11 +147,11 @@ if(!file.exists("all_decades3.rds")){
       population = get_pop_est(year, state))
   
   # Export the final stage.
-  saveRDS(all_decades3, "all_decades3.rds")
+  saveRDS(all_decades3, "data/all_decades3.rds")
 }
 
 # All the above steps are saved in an external file which is loaded here to save time
-all_decades3 <- readRDS("all_decades3.rds")
+all_decades3 <- readRDS("data/all_decades3.rds")
 
 # Function for plotting my first three charts, dependent on column
 plot_overview <- function(

@@ -11,15 +11,15 @@ get_data <- function(){
     c("st6070ts.txt",
       "st7080ts.txt",
       "st8090ts.txt")) |> 
-    walk(get_if_needed)
+    walk(get_if_needed, destdir = "data-raw")
   
-  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/1990-2000/state/totals/st-99-03.txt")
+  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/1990-2000/state/totals/st-99-03.txt", destdir = "data-raw")
   
-  get_if_needed("https://www2.census.gov/programs-surveys/popest/datasets/2000-2010/intercensal/state/st-est00int-agesex.csv")
+  get_if_needed("https://www2.census.gov/programs-surveys/popest/datasets/2000-2010/intercensal/state/st-est00int-agesex.csv", destdir = "data-raw")
   
-  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/totals/nst-est2019-01.xlsx")
+  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/totals/nst-est2019-01.xlsx", destdir = "data-raw")
   
-  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/2020-2022/state/totals/NST-EST2022-POP.xlsx")
+  get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/2020-2022/state/totals/NST-EST2022-POP.xlsx", destdir = "data-raw")
   
   # Pull it all together. Some of these files aren't very clean, so it takes some work to standardize everything.
   pop_estimates <- 

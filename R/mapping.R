@@ -9,10 +9,10 @@ if(!file.exists("us_states.rds")){
   us_states <- us_states |> 
     st_simplify(dTolerance = 75)
   
-  saveRDS(us_states, "us_states.rds")
+  saveRDS(us_states, "data/us_states.rds")
 } 
 
-us_states <- readRDS("us_states.rds")
+us_states <- readRDS("data/us_states.rds")
 
 # Join the shape data with the data from NEH. Additionally, transform the projection to something nicer. Because the process can take awhile, I'll save completed steps as an Rds file and skip the processing if the file exists. If it doesn't, I'll complete the process and save that final step.
 if(!file.exists("awards_by_state.rds")){
@@ -21,10 +21,10 @@ if(!file.exists("awards_by_state.rds")){
     left_join(all_decades3) |> 
     st_transform("ESRI:102008")
   
-  saveRDS(awards_by_state, "awards_by_state.rds")
+  saveRDS(awards_by_state, "data/awards_by_state.rds")
 } 
 
-awards_by_state <- readRDS("awards_by_state.rds")
+awards_by_state <- readRDS("data/awards_by_state.rds")
 
 # Prepare the final data frame for mapping. Export it so that this step can be skipped in the future, and check here to see if the exported data exists. (If it doesn't exist, run compile the data and then export it.)
 if(!file.exists("awards_map_final.rds")){
@@ -75,11 +75,11 @@ if(!file.exists("awards_map_final.rds")){
                right = 6800000,
                up = -2000000) 
   
-  saveRDS(awards_map_final, "awards_map_final.rds")
+  saveRDS(awards_map_final, "data/awards_map_final.rds")
 }
 
 # saving all the above steps in an external file lets me skip them and load it here to save time.
-awards_map_final <- readRDS("awards_map_final.rds")
+awards_map_final <- readRDS("data/awards_map_final.rds")
 
 # functions to make the maps in the second part of the analysis
 map_year <- function(df, the_year){
