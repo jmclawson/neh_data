@@ -2,7 +2,7 @@ library(sf)
 library(tigris)
 
 # Keeping a local copy lets me do this work on an airplane
-if(!file.exists("us_states.rds")){
+if(!file.exists("data/us_states.rds")){
   us_states <- states(cb = TRUE)
   
   # The st_simplify function speeds up mapping, as learned from Reddit: https://www.reddit.com/r/Rlanguage/comments/vxyou8/plotting_geospatial_data_is_so_slow_how_to_speed/
@@ -15,7 +15,7 @@ if(!file.exists("us_states.rds")){
 us_states <- readRDS("data/us_states.rds")
 
 # Join the shape data with the data from NEH. Additionally, transform the projection to something nicer. Because the process can take awhile, I'll save completed steps as an Rds file and skip the processing if the file exists. If it doesn't, I'll complete the process and save that final step.
-if(!file.exists("awards_by_state.rds")){
+if(!file.exists("data/awards_by_state.rds")){
   awards_by_state <- us_states |> 
     rename(state = STUSPS) |> 
     left_join(all_decades3) |> 
@@ -27,7 +27,7 @@ if(!file.exists("awards_by_state.rds")){
 awards_by_state <- readRDS("data/awards_by_state.rds")
 
 # Prepare the final data frame for mapping. Export it so that this step can be skipped in the future, and check here to see if the exported data exists. (If it doesn't exist, run compile the data and then export it.)
-if(!file.exists("awards_map_final.rds")){
+if(!file.exists("data/awards_map_final.rds")){
   
   ###### Move Alaska and Hawaii #####
   # This process is adapted from https://sesync-ci.github.io/blog/transform-Alaska-Hawaii.html

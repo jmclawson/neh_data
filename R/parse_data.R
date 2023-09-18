@@ -2,6 +2,7 @@
 library(xml2) # for parsing XML files
 library(tidyverse) # for wrangling and visualizing
 library(priceR) # for standardizing historical dollars to 2022 dollar values
+library(scales) # for nicer labeling of numerical units
 
 # Make a list of URLs to download
 urls <- paste0("https://apps.neh.gov/open/data/NEH_Grants",
@@ -35,7 +36,7 @@ list.files("data", pattern = ".zip", full.names = TRUE) |>
   walk(extract_xml)
 
 # Collect a list of XML files for processing.
-xml_files <- list.files("data", pattern = ".xml", full.names = TRUE)
+xml_files <- list.files("data-raw", pattern = ".xml", full.names = TRUE)
 
 # Function to standardize parsing.
 return_parsed_table <- function(xml_file){
@@ -100,7 +101,7 @@ clean_and_sum <- function(file){
 }
 
 # Because the process can take awhile, I'll save completed steps as an Rds file and skip the processing if the file exists. If it doesn't, I'll complete the process and save that final step.
-if(!file.exists("all_decades3.rds")){
+if(!file.exists("data/all_decades3.rds")){
   
   all_decades <- 
     return_parsed_table(xml_files[1]) |>
@@ -168,7 +169,7 @@ plot_overview <- function(
     geom_text(aes(color = state_median, label = state),
               show.legend = FALSE) +
     scale_y_continuous(
-      labels = scales::label_dollar(),
+      labels = label_dollar(),
       expand = expansion(0,)) +
     scale_x_continuous(expand = expansion(0,0)) +
     theme_minimal() +
