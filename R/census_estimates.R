@@ -1,5 +1,9 @@
+library(tidyverse)
+
+# Define the range of census data to download
 decades <- 196:199*10
 
+# Function to download all the data once
 get_data <- function(){
   # download data files
   paste0(
@@ -7,7 +11,7 @@ get_data <- function(){
     c("st6070ts.txt",
       "st7080ts.txt",
       "st8090ts.txt")) |> 
-    purrr::walk(get_if_needed)
+    walk(get_if_needed)
   
   get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/1990-2000/state/totals/st-99-03.txt")
   
@@ -17,7 +21,7 @@ get_data <- function(){
   
   get_if_needed("https://www2.census.gov/programs-surveys/popest/tables/2020-2022/state/totals/NST-EST2022-POP.xlsx")
   
-  # pull it all together
+  # Pull it all together. Some of these files aren't very clean, so it takes some work to standardize everything.
   pop_estimates <- 
     read_table("data/st6070ts.txt", 
              skip = 24, n_max = 51,
@@ -92,8 +96,10 @@ get_data <- function(){
         select(state_name, `2020`:`2022`))
 }
 
+# Save all the above to a table.
 population_table <- get_data()
 
+# Create a function to look up the estimated population of a state in a given year
 get_pop_est <- function(year, abbr){
   population_table |> 
     select(-state_name) |> 
@@ -102,3 +108,6 @@ get_pop_est <- function(year, abbr){
            name == year) |> 
     pull(value)
 }
+
+# sample use:
+# get_pop_est(2006, "OH")
