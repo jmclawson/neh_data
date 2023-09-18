@@ -19,8 +19,6 @@ The National Endowment for the Humanities (NEH) provides an extensive online rep
 
 ```{r}
 #| label: setup
-#| message: false
-#| warning: false
 
 # Load packages used within this document
 library(tidyverse)
