@@ -5,43 +5,52 @@ format:
   html:
     table-of-contents: true
     embed-resources: true
+    code-fold: true
 execute: 
-  echo: false
   message: false
   warning: false
 editor: visual
-bibliography: citations.bib
+bibliography: [citations.bib, grateful-refs.bib]
 nocite: |
   @*
 ---
 
+The National Endowment for the Humanities (NEH) provides an extensive online repository of historical data. Notably, this data set makes it possible to study the allocation of funding over every decade of the endowment's existence. Taking three distinct angles---chronological, spatial, and categorical---this document presents findings on the distribution of funding to answer the question, "Where does NEH funding go?"
+
 ```{r}
 #| label: setup
-#| include: false
-library(tidyverse)
-```
+#| message: false
+#| warning: false
 
-The National Endowment for the Humanities (NEH) provides an extensive online repository of historical data. Notably, this data set makes it possible to study the allocation of funding over every decade of the endowment's existence. Taking three distinct angles---chronological, spatial, and categorical---this document presents findings on the distribution of funding to answer the question, "Where does NEH funding go?"
+# Load packages used within this document
+library(tidyverse)
+library(scales)
+
+# Load functions and data prepared in other scripts
+source("R/parse_data.R")
+source("R/mapping.R")
+```
 
 ## Annual Spending
 
-Available in XML files, the NEH funding data for each decade reveals which projects were awarded funding, how much they were awarded, and additional details such as their project title, field of study, and location. To study spending over time, some values need to be added for context. First, comparing monetary values over many years only makes sense if the value of a dollar is stable; for this reason, real dollar values have been indexed to 2022 dollars using the `priceR` package in R. Second, larger states will reasonably show higher funding values than smaller states; accordingly, historical census estimates for each state in each year have been imported to calculate per capita award values. Adopting each method substantially changes what the data reveal.
+Available in XML files, the NEH funding data for each decade reveals which projects were awarded funding, how much they were awarded, and additional details such as their project title, field of study, and location. To study spending over time, some values need to be added for context. First, comparing monetary values over many years only makes sense if the value of a dollar is stable; for this reason, real dollar values have been indexed to 2022 dollars using the priceR package in R, which works from World Bank inflation data. Second, larger states will reasonably show higher funding values than smaller states; accordingly, historical census estimates for each state in each year have been imported to calculate per capita award values. Adopting each method substantially changes what the data reveal.
 
-In the charts that follow, colors are determined by a state's median value on the Y-axis. Color neighbors suggest that two states share similar funding history, while a lack of nearby colors shows that a state or district may be an outlier.
+In the charts that follow, award amounts are calculated as the combination of each project's *AwardOutright* and *AwardMatching* values in the NEH-supplied data and then combined by state and year. Colors are determined by a state's median value on the Y-axis. Color neighbors suggest that two states share similar funding history, while a lack of nearby colors shows that a state or district may be an outlier.
 
 ::: panel-tabset
 ## Nominal spending per state
 
 ```{r}
-source("parse_data.R")
+#| label: nominal spending
 all_decades3 |> 
   plot_overview(
     award_total,
     "Nominal spending per state") +
+  # Change the color scheme
   scale_color_distiller(
       direction = 1,
-      palette = "YlGn"
-    ) +
+      palette = "YlGn") +
+  # Add a trend line
   geom_smooth(se = FALSE)
 ```
 
@@ -50,12 +59,14 @@ Reported numbers suggest an exclusive club, typically reserving annual funding a
 ## Real spending per state
 
 ```{r}
+#| label: real spending
 all_decades3 |> 
   plot_overview(award_adjusted, "Real spending per state (2022 dollars)") +
+  # Use the same color scheme for dollars per state
   scale_color_distiller(
       direction = 1,
-      palette = "YlGn"
-    ) +
+      palette = "YlGn") +
+  # Add a trend line
   geom_smooth(se = FALSE)
 
 ```
@@ -65,12 +76,14 @@ Adjusting for inflation shows a different shape in the data. Here, funding rises
 ## Per capita
 
 ```{r}
+#| label: per capita real spending
 all_decades3 |> 
   plot_overview(per_capita_adjusted, "Real spending per capita (2022 dollars)") +
+  # Use a different color scheme for different unit (dollars per capita)
   scale_color_distiller(
       direction = 1,
-      palette = "YlGnBu"
-    ) +
+      palette = "YlGnBu") +
+  # Add a trend line
   geom_smooth(se = FALSE)
 ```
 
@@ -79,13 +92,15 @@ Adjusting annually for the estimated population of each state or district adds f
 ## Without DC
 
 ```{r}
+#| label: per capita without DC
 all_decades3 |> 
   filter(state != "DC") |> 
   plot_overview(per_capita_adjusted, "Real spending per capita (without DC)") +
+  # use the dollars per capita color scheme
   scale_color_distiller(
       direction = 1,
-      palette = "YlGnBu"
-    ) +
+      palette = "YlGnBu") +
+  # Add a trend line
   geom_smooth(se = FALSE)
 ```
 
@@ -93,42 +108,49 @@ Omitting DC rescales the chart to reveal other states with higher amounts of per
 :::
 
 ### *Over its history, where has NEH funding gone?*
-Bigger states have gotten bigger amounts of each year's funding, but smaller states earned larger portions per capita. Standardized for inflation, annual funding amounts have fallen steadily since about 1990. 
+
+Bigger states have gotten bigger amounts of each year's funding, but smaller states earned larger portions per capita. Standardized for inflation, annual funding amounts have fallen steadily since about 1990.
 
 ## Mapping Moments
 
-Projecting data to a map makes it possible to find any regional trends. To make these maps, it is necessary to have workable shape files describing the contours of each state. The `tigris` package in R supplied this state shape data. After geospatial data was imported for each state, Alaska and Hawaii were transformed to appear under the continental 48 states to simplify comparison.
+Projecting data to a map makes it possible to find any regional trends. To make these maps, it is necessary to have workable shape files describing the contours of each state. The tigris package in R supplied this state shape data. After geospatial data was imported for each state, Alaska and Hawaii were transformed to appear under the continental 48 states to simplify comparison.
 
 ::: panel-tabset
 ## A tough start
 
 ```{r}
-source("mapping.R")
+#| label: awards map 1966-71
 awards_map_final |>
   map_years(1966:1971)
 ```
-The first few years of data show a slow start, an undeniable interest in national coverage, and a few rocky years. In 1966, one year after its founding, the NEH funded ten projects on the east coast, limited to New York, Connecticut, and Washington DC. It funded 609 projects in the next year, with representation stretching across the country to include DC and every state but New Mexico. In 1968, funding dropped dramatically, with just 147 awards, but funding recovered in a few years. 
+
+The first few years of data show a slow start, an undeniable interest in national coverage, and a few rocky years. In 1966, one year after its founding, the NEH funded `r sum(awards_map_final$award_count[awards_map_final$year == 1966], na.rm=TRUE)` projects on the east coast, limited to New York, Connecticut, and Washington DC. It funded `r sum(awards_map_final$award_count[awards_map_final$year == 1967], na.rm=TRUE)` projects in the next year, with representation stretching across the country to include DC and every state but New Mexico. In 1968, funding dropped dramatically, with just `r sum(awards_map_final$award_count[awards_map_final$year == 1968], na.rm=TRUE)` awards, but it recovered in a few years.
 
 Comparing these maps suggests an early interest in gaining geographic diversity. Per capita funding was comparatively low in southern states---and indeed in most states away from the east and west coasts---but this regional pattern does not seem to last long.
 
 ## Peak Humanities
 
 ```{r}
+#| label: awards map 1977
 awards_map_final |>
   map_year(1977)
 ```
 
-Funding peaked in 1977, when more than two thousand projects were awarded \$721.5 million, adjusted for inflation. DC's projects were awarded more than \$47 per capita, and Alaska's topped \$15.35 per capita (2022 dollars). As this map shows, no region dominates funding dollars, and none seems to suffer from poor representation.
+Funding peaked in 1977, when more than two thousand projects were awarded \$721.5 million, adjusted for inflation. DC's projects were awarded more than \$`r mean(awards_map_final$per_capita_adjusted[awards_map_final$year == 1977 & awards_map_final$state == "DC"]) |> round()` per capita, and Alaska's topped \$`r mean(awards_map_final$per_capita_adjusted[awards_map_final$year == 1977 & awards_map_final$state == "AK"]) |> round()` per capita (2022 dollars). As this map shows, no region dominates funding dollars, and none seems to suffer from poor representation.
 
 ## New Low
+
 ```{r}
+#| label: awards map 2019
 awards_map_final |>
   map_year(2019)
 ```
-In 2019, funding fell to its lowest level since the 1960s. Only 424 projects were funded, totaling $60.6 million when adjusted for inflation. Per capita funding averaged just 32¢ in states where projects were funded. While every state suffers in lean times like this, they seem to do so unequally. New England states, in particular, seem to have weathered the funding crunch better than most. Dark zones along the Ohio River, the Mississippi River, and the border with Mexico show regions of states with noticeably lower funding. White blanks show some states that lack funding altogether.
+
+In 2019, funding fell to its lowest level since the 1960s. Only 424 projects were funded, totaling \$60.6 million when adjusted for inflation. Per capita funding averaged just `r (awards_map_final$per_capita_adjusted[awards_map_final$year == 2019] |> mean(na.rm=TRUE)*100) |> round()`¢ in states where projects were funded. While every state suffers in lean times like this, they seem to do so unequally. New England states, in particular, seem to have weathered the funding crunch better than most. Dark zones along the Ohio River, the Mississippi River, and the border with Mexico show regions of states with noticeably lower funding. White blanks show some states that lack funding altogether.
 :::
 
-### *Across the country, where does NEH funding go?* 
+### *Across the country, where does NEH funding go?*
+
 Maps show good geographic diversity, especially in good years of funding. In bad years, certain regions may feel it harder than others. The Northeast fares better than other regions when funding is low.
 
 ## Finding Types
@@ -139,8 +161,10 @@ Finally, the NEH data sets provide sufficient opportunity for categorical compar
 ## First-Timers
 
 ```{r}
-all_decades <- readRDS("all_decades.rds")
-all_decades |>
+#| label: first-time awardees
+all_decades <- readRDS("data/all_decades.rds")
+
+first_timers <- all_decades |>
   arrange(year) |>
   filter(
     !str_detect(institution, "Unknown"),
@@ -150,36 +174,35 @@ all_decades |>
          year = as.integer(year)) |>
   ungroup() |>
   summarize(
-    first_timer = sum(num_awards == 1),
-    other_timer = sum(num_awards > 1),
-    first_pc = first_timer / sum(first_timer,
-                                 other_timer),
-    other_pc = 1 - first_pc,
-    .by = year) |>
-  ggplot(aes(year, first_pc)) +
+    percent = sum(num_awards == 1) / n(),
+    .by = year)
+
+first_timers |>
+  ggplot(aes(year, percent)) +
   geom_point() +
   geom_line() +
   scale_x_continuous() +
   labs(x = NULL,
        y = NULL,
        title = "Proportion of first-time awardees spiked in 1987 and 1999") +
-  scale_y_continuous(labels = scales::label_percent()) +
+  scale_y_continuous(labels = label_percent()) +
   theme_minimal() +
   theme(plot.title.position = "plot")
 ```
 
-Not all grants go to perennial winners of funding. As this chart shows, about 12% of all awards in the past twenty years have gone to first-time awardees. An interesting spike in 1987 and a rise in 1999-2000 is worth further study.
+Not all grants go to perennial winners of funding. As this chart shows, about `r (filter(first_timers, year>=2000) |> pull(percent) |> mean() * 100) |> round()` of all awards since 2000 have gone to first-time awardees. An interesting spike in 1987 and a rise in 1999-2000 are worth further study.
 
 ## Long Divisions
 
 ```{r}
+#| label: divisions by total awards
 all_decades |>
   filter(state %in% c(state.abb, "DC")) |>
   summarize(total = sum(award_total, na.rm = TRUE),
          .by = division) |>
   ggplot(aes(total, reorder(division, total))) + 
   geom_col(fill = "black") +
-  scale_x_continuous(labels=scales::label_dollar(scale_cut = scales::cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank()) +
   labs(x = NULL,
@@ -194,6 +217,7 @@ Although academics might think primarily of the research programs funded by the 
 ## Discipline
 
 ```{r}
+#| label: disciplines by total awards
 all_decades |> 
   filter(state %in% c(state.abb, "DC")) |>
   summarize(total = sum(award_total, na.rm = TRUE),
@@ -202,7 +226,7 @@ all_decades |>
   head(10) |> 
   ggplot(aes(total, reorder(discipline, total))) + 
   geom_col(fill = "black") +
-  scale_x_continuous(labels=scales::label_dollar(scale_cut = scales::cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank()) +
   labs(x = NULL,
@@ -216,6 +240,7 @@ Compared to other disciplines, interdisciplinary studies has received far more f
 ## Types of institutions
 
 ```{r}
+#| label: institution-types by total awards
 all_decades |> 
   filter(state %in% c(state.abb, "DC")) |>
   summarize(total = sum(award_total, na.rm = TRUE),
@@ -224,7 +249,7 @@ all_decades |>
   head(10) |>
   ggplot(aes(total, reorder(org_type, total))) + 
   geom_col(fill = "black") +
-  scale_x_continuous(labels=scales::label_dollar(scale_cut = scales::cut_short_scale())) +
+  scale_x_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank()) +
   labs(x = NULL,
@@ -234,12 +259,16 @@ all_decades |>
 ```
 
 Finally, the lion's share of funding goes to state humanities councils, followed by four-year colleges and universities. From there, a long tail of organizational types show funding going to centers and institutes, national organizations and societies, and museums, among other places.
-
 :::
 
-### *What types of projects does the NEH fund?* 
+### *What types of projects does the NEH fund?*
+
 Comparing groups shows that funding goes to a broad mix. First-time recipients make up an impressive share of awardees, and four-year colleges are awarded more than universities. Research programs represent a smaller share than some other kinds of funding, and interdisciplinary work is the best funded.
 
 ## Conclusions
 
-Considering history, geography, and types of projects funded can show insights into the NEH's funding practices. Studying many perspectives can help ensure that the endowment touches more lives, needlessly missing none. 
+Considering history, geography, and types of projects funded can show insights into the NEH's funding practices. Studying many perspectives can help ensure that the endowment touches more lives, needlessly missing none.
+
+## Reproducibility {.appendix}
+
+`r grateful::cite_packages(output = "paragraph", out.dir = ".", passive.voice = TRUE, omit = c("gganimate", "gifski"))` Code for the report can be viewed alongside its supporting materials on GitHub at the following URL: <https://github.com/jmclawson/neh_data/blob/main/report.qmd>
