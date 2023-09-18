@@ -271,4 +271,4 @@ Considering history, geography, and types of projects funded can show insights i
 
 ## Reproducibility {.appendix}
 
-`r grateful::cite_packages(output = "paragraph", out.dir = ".", passive.voice = TRUE, omit = c("gganimate", "gifski"))` Code for the report can be viewed alongside its supporting materials on GitHub at the following URL: <https://github.com/jmclawson/neh_data/blob/main/report.qmd>
+`r grateful::cite_packages(output = "paragraph", out.dir = ".", passive.voice = TRUE, omit = c("gganimate", "gifski"))` Code for the report can be viewed alongside its supporting materials on GitHub at the following URL: <https://github.com/jmclawson/neh_data/blob/postsubmit/report.qmd>
