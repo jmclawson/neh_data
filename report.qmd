@@ -25,6 +25,7 @@ The National Endowment for the Humanities (NEH) provides an extensive online rep
 # Load packages used within this document
 library(tidyverse)
 library(scales)
+library(quarto)
 
 # Load functions and data prepared in other scripts
 source("R/parse_data.R")
