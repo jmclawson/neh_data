@@ -9,7 +9,6 @@ format:
 execute: 
   message: false
   warning: false
-editor: visual
 bibliography: [citations.bib, grateful-refs.bib]
 nocite: |
   @*
@@ -189,7 +188,7 @@ first_timers |>
   theme(plot.title.position = "plot")
 ```
 
-Not all grants go to perennial winners of funding. As this chart shows, about `r (filter(first_timers, year>=2000) |> pull(percent) |> mean() * 100) |> round()` of all awards since 2000 have gone to first-time awardees. An interesting spike in 1987 and a rise in 1999-2000 are worth further study.
+Not all grants go to perennial winners of funding. As this chart shows, about `r (filter(first_timers, year>=2000) |> pull(percent) |> mean() * 100) |> round()`% of all awards since 2000 have gone to first-time awardees. An interesting spike in 1987 and a rise in 1999-2000 are worth further study.
 
 ## Long Divisions
 
