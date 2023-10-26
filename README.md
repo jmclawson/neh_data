@@ -1,1 +1,1 @@
-Visit the updated version of this report at [jmclawson.net/misc/neh/report.html](https://jmclawson.net/misc/neh/report.html).
+Visit the rendered report at [jmclawson.net/misc/neh](https://jmclawson.net/misc/neh).
