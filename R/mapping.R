@@ -1,34 +1,37 @@
 library(sf)
+library(tigris)
 
-if(!file.exists("us_states.rds")){
-  us_states <- tigris::states(cb = TRUE)
+# Keeping a local copy lets me do this work on an airplane
+if(!file.exists("data/us_states.rds")){
+  us_states <- states(cb = TRUE)
   
-  # speed up mapping, from https://www.reddit.com/r/Rlanguage/comments/vxyou8/plotting_geospatial_data_is_so_slow_how_to_speed/
+  # The st_simplify function speeds up mapping, as learned from Reddit: https://www.reddit.com/r/Rlanguage/comments/vxyou8/plotting_geospatial_data_is_so_slow_how_to_speed/
   us_states <- us_states |> 
     st_simplify(dTolerance = 75)
   
-  saveRDS(us_states, "us_states.rds")
+  saveRDS(us_states, "data/us_states.rds")
 } 
 
-us_states <- readRDS("us_states.rds")
+us_states <- readRDS("data/us_states.rds")
 
-if(!file.exists("awards_by_state.rds")){
+# Join the shape data with the data from NEH. Additionally, transform the projection to something nicer. Because the process can take awhile, I'll save completed steps as an Rds file and skip the processing if the file exists. If it doesn't, I'll complete the process and save that final step.
+if(!file.exists("data/awards_by_state.rds")){
   awards_by_state <- us_states |> 
     rename(state = STUSPS) |> 
     left_join(all_decades3) |> 
     st_transform("ESRI:102008")
   
-  saveRDS(awards_by_state, "awards_by_state.rds")
+  saveRDS(awards_by_state, "data/awards_by_state.rds")
 } 
 
-awards_by_state <- readRDS("awards_by_state.rds")
+awards_by_state <- readRDS("data/awards_by_state.rds")
 
-if(!file.exists("awards_map_final.rds")){
+# Prepare the final data frame for mapping. Export it so that this step can be skipped in the future, and check here to see if the exported data exists. (If it doesn't exist, run compile the data and then export it.)
+if(!file.exists("data/awards_map_final.rds")){
   
   ###### Move Alaska and Hawaii #####
-  # adapted from https://sesync-ci.github.io/blog/transform-Alaska-Hawaii.html
-  # Turned into a function to simplify the process
-  # Alaska's size is kept stable
+  # This process is adapted from https://sesync-ci.github.io/blog/transform-Alaska-Hawaii.html
+  # Here, I've turned into a function to simplify the process. Following suggested best practices in Wilke's Fundamentals of Data Visualization, Alaska's size is kept stable.
   
   move_state <- function(
     df, # original spatial dataframe
@@ -60,6 +63,7 @@ if(!file.exists("awards_map_final.rds")){
       rbind(df_state)
   }
   
+  # This is the version of the data I'll be mapping from
   awards_map_final <- 
     awards_by_state |> 
     move_state("AK", 
@@ -71,11 +75,13 @@ if(!file.exists("awards_map_final.rds")){
                right = 6800000,
                up = -2000000) 
   
-  saveRDS(awards_map_final, "awards_map_final.rds")
+  saveRDS(awards_map_final, "data/awards_map_final.rds")
 }
 
-awards_map_final <- readRDS("awards_map_final.rds")
+# saving all the above steps in an external file lets me skip them and load it here to save time.
+awards_map_final <- readRDS("data/awards_map_final.rds")
 
+# functions to make the maps in the second part of the analysis
 map_year <- function(df, the_year){
   df <- df |> 
     filter(year == the_year)
@@ -131,6 +137,7 @@ map_year <- function(df, the_year){
       color = "none")
 }
 
+# Same as above, but it accepts multiple years
 map_years <- function(df, the_years){
   df <- df |> 
     filter(year %in% the_years)

@@ -1,18 +1,21 @@
-library(xml2)
-library(tidyverse)
+# Load necessary packages
+library(xml2) # for parsing XML files
+library(tidyverse) # for wrangling and visualizing
+library(priceR) # for standardizing historical dollars to 2022 dollar values
+library(scales) # for nicer labeling of numerical units
 
-# make a list of URLs to download
+# Make a list of URLs to download
 urls <- paste0("https://apps.neh.gov/open/data/NEH_Grants",
                (196:202 * 10),
                "s.zip")
 
-# load a "get_if_needed" function I've written previously
+# Load a public "get_if_needed" function I've written previously
 source("https://gist.githubusercontent.com/jmclawson/65899e2de6bfee692b08141a98422240/raw/7c5590377332e427691f2331b69abd58be2141ec/get_if_needed.R")
 
-# apply the function to every url
-purrr::walk(urls, get_if_needed)
+# Apply the function to every url
+walk(urls, get_if_needed, destdir = "data-raw")
 
-# function to extract the xml file from each zip
+# Create a function to extract the xml file from each zip.
 extract_xml <- function(x, remove = FALSE){
   target <- x |> 
     str_extract("[^/]+$") |> 
@@ -28,11 +31,14 @@ extract_xml <- function(x, remove = FALSE){
   if(remove){file.remove(x)}
 }
 
+# Use this function on every Zip file.
 list.files("data", pattern = ".zip", full.names = TRUE) |> 
-  purrr::walk(extract_xml)
+  walk(extract_xml)
 
-xml_files <- list.files("data", pattern = ".xml", full.names = TRUE)
+# Collect a list of XML files for processing.
+xml_files <- list.files("data-raw", pattern = ".xml", full.names = TRUE)
 
+# Function to standardize parsing.
 return_parsed_table <- function(xml_file){
   nab <- function(pick, xml = xml_file){
     xml_text(xml_find_all(read_xml(xml), xpath = paste0("Grant/", pick)))
@@ -74,31 +80,10 @@ return_parsed_table <- function(xml_file){
     )
 }
 
-# parsed_table <-
-#   rbind(return_parsed_table(xml_files[1]),
-#         return_parsed_table(xml_files[2]),
-#         return_parsed_table(xml_files[3])) |> 
-#   filter(app_type == 1) |> 
-#   summarize()
-# 
-# parsed_table |> 
-#   View()
-
+# Import census data processed using a different script
 source("R/census_estimates.R")
 
-return_parsed_table(xml_files[6]) |> 
-  filter(state %in% c(state.abb, "DC")) |> 
-  mutate(year = as.integer(year)) |> 
-  select(year, state, award_total) |> 
-  summarize(award_total = sum(award_total),
-            .by = c(year, state)) |> 
-  rowwise() |> 
-  mutate(award_per_capita = award_total / get_pop_est(year, state)) |> 
-  ggplot(aes(year, award_per_capita)) +
-  geom_text(aes(color = state, label = state),
-            show.legend = FALSE) +
-  scale_y_continuous(labels = scales::label_dollar())
-
+# Function to prepare data from each XML file, summarizing each state's annual funding amount, joining it with each state's annual census estimates prepared using the above R file, and returning a clean table.
 clean_and_sum <- function(file){
   decade <- file |> 
     str_extract_all("[0-9]+") |> 
@@ -115,7 +100,8 @@ clean_and_sum <- function(file){
     mutate(award_per_capita = award_total / get_pop_est(year, state))
 }
 
-if(!file.exists("all_decades3.rds")){
+# Because the process can take awhile, I'll save completed steps as an Rds file and skip the processing if the file exists. If it doesn't, I'll complete the process and save that final step.
+if(!file.exists("data/all_decades3.rds")){
   
   all_decades <- 
     return_parsed_table(xml_files[1]) |>
@@ -124,25 +110,29 @@ if(!file.exists("all_decades3.rds")){
     rbind(return_parsed_table(xml_files[4])) |> 
     rbind(return_parsed_table(xml_files[5])) |> 
     rbind(return_parsed_table(xml_files[6])) #|>
-    #rbind(return_parsed_table(xml_files[7])) |> 
+    #rbind(return_parsed_table(xml_files[7]))
+    # For some reason, I struggled with the data for 2020-2023. I decided to skip it for now.
     
+  # Export data for the first step of the process.
+  if(!dir.exists("data")){dir.create("data")}
+  saveRDS(all_decades, "data/all_decades.rds")
   
-  saveRDS(all_decades, "all_decades.rds")
-  
-  # adjust for inflation to 2022 amounts
+  # Adjust for inflation to 2022 amounts using the priceR package.
   all_decades2 <- 
     all_decades |> 
     select(year, institution, state, award_total, division) |> 
     distinct() |> 
     mutate(
       amt_2022 = award_total |> 
-        priceR::adjust_for_inflation(
-          year,
-          "US",
-          2022))
+        adjust_for_inflation(
+          from_date = year,
+          country = "US",
+          to_date = 2022))
   
-  saveRDS(all_decades2, "all_decades2.rds")
+  # Export data for the next step of the process.
+  saveRDS(all_decades2, "data/all_decades2.rds")
   
+  # Add population estimates and calculate per capita funding
   all_decades3 <- all_decades2 |> 
     filter(state %in% c(state.abb, "DC")) |> 
     mutate(year = as.integer(year)) |> 
@@ -157,11 +147,14 @@ if(!file.exists("all_decades3.rds")){
       per_capita_adjusted = award_adjusted / get_pop_est(year, state),
       population = get_pop_est(year, state))
   
-  saveRDS(all_decades3, "all_decades3.rds")
+  # Export the final stage.
+  saveRDS(all_decades3, "data/all_decades3.rds")
 }
 
-all_decades3 <- readRDS("all_decades3.rds")
+# All the above steps are saved in an external file which is loaded here to save time
+all_decades3 <- readRDS("data/all_decades3.rds")
 
+# Function for plotting my first three charts, dependent on column
 plot_overview <- function(
     df, 
     column,
@@ -176,7 +169,7 @@ plot_overview <- function(
     geom_text(aes(color = state_median, label = state),
               show.legend = FALSE) +
     scale_y_continuous(
-      labels = scales::label_dollar(),
+      labels = label_dollar(),
       expand = expansion(0,)) +
     scale_x_continuous(expand = expansion(0,0)) +
     theme_minimal() +
@@ -188,4 +181,8 @@ plot_overview <- function(
     coord_cartesian(clip = "off") 
 }
 
-
+# sample use:
+# all_decades3 |> 
+#   plot_overview(
+#     column = award_total,
+#     title = "Nominal spending per state")
